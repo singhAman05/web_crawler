@@ -31,7 +31,7 @@ export class crawlQueue{
         return this.visited.has(url);
     }
 
-    maxDepth() : number{
+    visitedCount() : number{
         return this.visited.size;
     }
 }

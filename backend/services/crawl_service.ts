@@ -1,53 +1,51 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { crawlQueue } from "../core/crawlQueue";
+import { crawlJob } from "../core/crawlJob";
 import { AppError } from "../errors/appError";
 
 export async function crawlService(seedUrl: string,maxPages: number) {
     if (maxPages <= 0) {
         throw new AppError("MAX_PAGES_EXCEEDED");
     }
+    const job = new crawlJob(seedUrl);
 
-    const queue = new crawlQueue(seedUrl);
-    let pagesCrawled = 0;
+    while(!job.queue.isEmpty() && job.pages_crawled < maxPages) {
+        const current_url = job.queue.dequeue();
+        if(!current_url){
+            continue;
+        }
+        try{
+            const response = await axios.get(current_url, {timeout: 5000,validateStatus: (status) => status < 500});
+            job.pages_crawled++;
+            const html = response.data;
+            const dom = cheerio.load(html);
 
-    while (!queue.isEmpty() && pagesCrawled < maxPages) {
-        const currentUrl = queue.dequeue();
-        if (!currentUrl) continue;
+            dom("a[href]").each((_, el) => {
+                const href = dom(el).attr("href");
+                if (!href) return;
 
-        try {
-        const response = await axios.get(currentUrl, {
-            timeout: 5000,
-            validateStatus: (status) => status < 500
-        });
+                try {
+                    const absoluteUrl = new URL(href, current_url).toString();
 
-        const html = response.data;
-        pagesCrawled++;
+                    if (!job.isAllowed(absoluteUrl)) return;
+                    if (job.queue.hasVisited(absoluteUrl)) return;
 
-        const dom = cheerio.load(html);
-
-        dom("a[href]").each((_, el) => {
-            const href = dom(el).attr("href");
-            if (!href) return;
-
-            try {
-            const absoluteUrl = new URL(href, currentUrl).toString();
-            queue.enqueue(absoluteUrl);
-            } catch {
-            // ignore invalid or non-http URLs
-            }
-        });
-
-        } catch (err) {
-            // page-level failure → log and continue
-            console.error(`Failed to crawl ${currentUrl}`);
-            console.log(`Error: ${err}`);
+                    job.queue.enqueue(absoluteUrl);
+                } catch (err) {
+                // ignore malformed URLs
+                    console.warn(`Skipping invalid URL: ${href} found on ${current_url}`);
+                }
+            });
+        }catch(err){
+            console.error(`Error crawling ${current_url}:`, err);
+            continue;
         }
     }
 
     return {
-        seedUrl,
-        pagesCrawled,
-        discoveredUrls: queue.maxDepth()
+        jobId: job.job_id,
+        seedUrl: job.seed_url,
+        pagesCrawled: job.pages_crawled,
+        discoveredUrls: job.queue.visitedCount(),
     };
 }
