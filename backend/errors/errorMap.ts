@@ -9,9 +9,29 @@ export const ERROR_MAP = {
         message: "Only http and https URLs are allowed"
     },
 
+    INVALID_JOB_ID: {
+        status: 400,
+        message: "Invalid job ID"
+    },
+
+    NOT_FOUND: {
+        status: 404,
+        message: "Requested resource not found"
+    },
+
     CRAWL_ALREADY_RUNNING: {
         status: 409,
         message: "A crawl job is already running"
+    },
+
+    JOB_CANCELLED: {
+        status: 410,
+        message: "Crawl job has been cancelled"
+    },
+
+    JOB_FAILED: {
+        status: 500,
+        message: "Crawl job failed"
     },
 
     MAX_PAGES_EXCEEDED: {

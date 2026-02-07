@@ -15,7 +15,7 @@ const server = http.createServer(app)
 app.use(express.json());
 app.use(cors());
 
-app.use(`/${API_VERSION}`,crawlerRoute);
+app.use(`/${API_VERSION}/crawl`,crawlerRoute);
 
 
 app.get('/',(req,res)=>{

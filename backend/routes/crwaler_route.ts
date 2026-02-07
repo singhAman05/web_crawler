@@ -1,7 +1,7 @@
 import {Router} from 'express';
-import { crawlController } from '../controllers/crawl_controller';
+import { startCrawl, getCrawlStatus } from '../controllers/crawl_controller';
 const router = Router();
 
-router.get('/crawl', crawlController);
-
+router.post('/startJob', startCrawl);
+router.get('/:jobId', getCrawlStatus);
 export default router;

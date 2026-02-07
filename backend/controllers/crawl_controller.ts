@@ -1,19 +1,52 @@
 import { Request, Response, NextFunction } from "express";
-import { crawlService } from "../services/crawl_service";
+import { crawl_Manager } from "../core/crawlManager";
 import { validateInput } from "../utils/validateInput";
+import { AppError } from "../errors/appError";
 
-export const crawlController = async (req: Request,res: Response,next: NextFunction) => {
+export const startCrawl = async (req: Request,res: Response,next: NextFunction) => {
     try {
-        const { seed_url } = req.body;
-        const seedUrl = validateInput(seed_url);
-        const result = await crawlService(seedUrl, 10);
+        let { seedUrl, maxPages=20 } = req.body;
+        seedUrl = validateInput(seedUrl);
+        const job = crawl_Manager.startJob(seedUrl, maxPages);
 
-        return res.status(200).json({
-        message: "Crawl executed successfully",
-        data: result
+        return res.status(202).json({
+            message: "Crawl job started",
+            job_id: job.job_id,
+            seed_url: job.seed_url
         });
 
     } catch (err) {
         next(err);
     }
 };
+
+export const getCrawlStatus = async (req: Request, res: Response, next: NextFunction) => {
+    try{
+        const rawJobId = req.params.jobId;
+
+        const jobId = Array.isArray(rawJobId)
+            ? rawJobId[0]
+            : rawJobId;
+
+        if (!jobId) {
+            throw new AppError("INVALID_JOB_ID");
+        }
+
+        const job = crawl_Manager.getJob(jobId);
+        if (!job) {
+            throw new AppError("NOT_FOUND");
+        }
+        return res.status(200).json({
+            jobId: job.job_id,
+            status: job.status,
+            seedUrl: job.seed_url,
+            pagesCrawled: job.pages_crawled,
+            createdAt: job.created_at,
+            startedAt: job.started_at ?? null,
+            completedAt: job.completed_at ?? null,
+            error: job.error ?? null
+        });
+    }catch(err){
+        next(err);
+    }
+}

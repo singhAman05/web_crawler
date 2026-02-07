@@ -3,11 +3,10 @@ import * as cheerio from "cheerio";
 import { crawlJob } from "../core/crawlJob";
 import { AppError } from "../errors/appError";
 
-export async function crawlService(seedUrl: string,maxPages: number) {
+export async function crawlService(job:crawlJob,maxPages: number) {
     if (maxPages <= 0) {
         throw new AppError("MAX_PAGES_EXCEEDED");
     }
-    const job = new crawlJob(seedUrl);
 
     while(!job.queue.isEmpty() && job.pages_crawled < maxPages) {
         const current_url = job.queue.dequeue();
