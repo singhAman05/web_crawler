@@ -6,7 +6,7 @@ import { AppError } from "../errors/appError";
 export const startCrawl = async (req: Request,res: Response,next: NextFunction) => {
     try {
         let { seedUrl, maxPages=20 } = req.body;
-        seedUrl = validateInput(seedUrl);
+        seedUrl = validateInput(seedUrl,maxPages);
         const job = crawl_Manager.startJob(seedUrl, maxPages);
 
         return res.status(202).json({

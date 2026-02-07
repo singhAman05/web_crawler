@@ -1,8 +1,12 @@
 import { AppError } from "../errors/appError";
 
-export const validateInput = (seedUrl: unknown): string => {
+export const validateInput = (seedUrl: unknown, maxPages: number): string => {
     if (typeof seedUrl !== "string" || seedUrl.trim() === "") {
         throw new AppError("INVALID_SEED_URL");
+    }
+
+    if (maxPages > 50) {
+        throw new AppError("MAX_PAGES_EXCEEDED");
     }
 
     let url: URL;
