@@ -11,6 +11,6 @@
 
     "types": ["node"]
   },
-  "include": ["server.ts"],
+  "include": ["**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
