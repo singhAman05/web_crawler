@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -16,7 +16,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Calendar,
-  Zap,
+  Link2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,15 +47,52 @@ interface Job {
 }
 
 export default function WebCrawlerPage() {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
   const [seedUrl, setSeedUrl] = useState("");
   const [maxPages, setMaxPages] = useState(20);
   const [loading, setLoading] = useState(false);
   const [jobs, setJobs] = useState<Job[]>([]); // Removed hardcoded values
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
+  const jobSummary = useMemo(
+    () =>
+      jobs.reduce(
+        (acc, job) => {
+          acc.total += 1;
+          if (job.status === "running") acc.running += 1;
+          if (job.status === "completed") acc.completed += 1;
+          if (job.status === "failed") acc.failed += 1;
+          return acc;
+        },
+        { total: 0, running: 0, completed: 0, failed: 0 },
+      ),
+    [jobs],
+  );
+
+  const isValidUrl = (value: string) => {
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+
   const startCrawl = async () => {
-    if (!seedUrl) {
+    const cleanedUrl = seedUrl.trim();
+
+    if (!cleanedUrl) {
       toast.error("Seed URL is required");
+      return;
+    }
+
+    if (!isValidUrl(cleanedUrl)) {
+      toast.error("Please provide a valid HTTP/HTTPS URL");
+      return;
+    }
+
+    if (!Number.isFinite(maxPages) || maxPages < 1) {
+      toast.error("Max pages must be a number greater than 0");
       return;
     }
 
@@ -62,10 +100,10 @@ export default function WebCrawlerPage() {
     const toastId = toast.loading("Initializing mission...");
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/crawl/startJob", {
+      const res = await fetch(`${apiBaseUrl}/api/v1/crawl/startJob`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seedUrl, maxPages }),
+        body: JSON.stringify({ seedUrl: cleanedUrl, maxPages }),
       });
 
       if (!res.ok) throw new Error("Failed");
@@ -74,7 +112,7 @@ export default function WebCrawlerPage() {
       setJobs((prev) => [
         {
           id: data.job_id,
-          url: seedUrl,
+          url: cleanedUrl,
           status: "pending",
           lastUpdated: new Date().toISOString(),
         },
@@ -93,7 +131,8 @@ export default function WebCrawlerPage() {
   const checkStatus = async (jobId: string) => {
     const toastId = toast.loading("Syncing with agent...");
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/crawl/${jobId}`);
+      const res = await fetch(`${apiBaseUrl}/api/v1/crawl/${jobId}`);
+      if (!res.ok) throw new Error("Failed");
       const data = await res.json();
 
       setJobs((prev) =>
@@ -118,9 +157,11 @@ export default function WebCrawlerPage() {
   };
 
   const toggleExpand = (jobId: string) => {
-    setExpandedJobId(expandedJobId === jobId ? null : jobId);
-    // Always check status when expanding to get latest data
-    checkStatus(jobId);
+    const isExpanding = expandedJobId !== jobId;
+    setExpandedJobId(isExpanding ? jobId : null);
+    if (isExpanding) {
+      checkStatus(jobId);
+    }
   };
 
   const getStatusBadge = (status: Job["status"]) => {
@@ -234,6 +275,34 @@ export default function WebCrawlerPage() {
           </div>
         </motion.div>
 
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.05 }}
+          className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
+        >
+          <StatCard
+            label="Total Jobs"
+            value={String(jobSummary.total)}
+            icon={<Layers size={16} />}
+          />
+          <StatCard
+            label="Running"
+            value={String(jobSummary.running)}
+            icon={<Loader2 size={16} className="animate-spin" />}
+          />
+          <StatCard
+            label="Completed"
+            value={String(jobSummary.completed)}
+            icon={<CheckCircle2 size={16} />}
+          />
+          <StatCard
+            label="Failed"
+            value={String(jobSummary.failed)}
+            icon={<AlertCircle size={16} />}
+          />
+        </motion.div>
+
         {/* Control Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -243,7 +312,7 @@ export default function WebCrawlerPage() {
           <Card className="shadow-xl border-gray-300 overflow-hidden backdrop-blur-sm bg-white/95 hover:shadow-2xl transition-all duration-500">
             <CardHeader className="pb-4 border-b border-gray-200">
               <CardTitle className="text-xs font-bold uppercase tracking-widest text-gray-800 flex items-center gap-2">
-                <Zap size={14} className="fill-gray-800" />
+                <Sparkles size={14} className="fill-gray-800" />
                 Initiate Discovery
               </CardTitle>
             </CardHeader>
@@ -270,6 +339,7 @@ export default function WebCrawlerPage() {
                       value={seedUrl}
                       onChange={(e) => setSeedUrl(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && startCrawl()}
+                      autoComplete="url"
                       className="pl-11 h-12 bg-white border-gray-300 focus:border-gray-800 focus:ring-2 ring-gray-300 transition-all rounded-xl text-gray-900 placeholder:text-gray-500"
                     />
                   </motion.div>
@@ -293,6 +363,7 @@ export default function WebCrawlerPage() {
                     <Input
                       id="pages"
                       type="number"
+                      min={1}
                       value={maxPages}
                       onChange={(e) => setMaxPages(Number(e.target.value))}
                       className="pl-11 h-12 bg-white border-gray-300 focus:border-gray-800 focus:ring-2 ring-gray-300 rounded-xl font-mono transition-all"
@@ -456,7 +527,9 @@ export default function WebCrawlerPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="h-8 w-8 p-0 rounded-full border-red-200 hover:border-red-300 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+                                  disabled
+                                  title="Cancellation endpoint is not available in the backend yet"
+                                  className="h-8 w-8 p-0 rounded-full border-red-200 bg-red-50/50 text-red-400 cursor-not-allowed"
                                 >
                                   <XCircle size={14} />
                                 </Button>
@@ -486,7 +559,7 @@ export default function WebCrawlerPage() {
                                     initial={{ y: -10, opacity: 0 }}
                                     animate={{ y: 0, opacity: 1 }}
                                     transition={{ delay: 0.1 }}
-                                    className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
                                   >
                                     <DetailCard
                                       label="Pages Crawled"
@@ -549,6 +622,14 @@ export default function WebCrawlerPage() {
                                         )
                                       }
                                       delay={0.2}
+                                    />
+                                    <DetailCard
+                                      label="API Source"
+                                      value={apiBaseUrl.replace(/^https?:\/\//, "")}
+                                      icon={
+                                        <Link2 size={18} className="text-gray-700" />
+                                      }
+                                      delay={0.25}
                                     />
                                   </motion.div>
 
@@ -653,6 +734,33 @@ export default function WebCrawlerPage() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+
+function StatCard({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <Card className="border-gray-200 bg-white/90 shadow-sm">
+      <CardContent className="p-4 flex items-center justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest text-gray-500 font-semibold">
+            {label}
+          </p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+        </div>
+        <div className="h-9 w-9 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center">
+          {icon}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
