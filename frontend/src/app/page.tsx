@@ -37,7 +37,7 @@ import React from "react";
 interface Job {
   id: string;
   url: string;
-  status: "pending" | "running" | "completed" | "failed" | "cancelled";
+  status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
   lastUpdated: string;
   pagesCrawled?: number;
   startedAt?: string | null;
@@ -75,7 +75,7 @@ export default function WebCrawlerPage() {
         {
           id: data.job_id,
           url: seedUrl,
-          status: "pending",
+          status: "PENDING",
           lastUpdated: new Date().toISOString(),
         },
         ...prev,
@@ -91,7 +91,6 @@ export default function WebCrawlerPage() {
   };
 
   const checkStatus = async (jobId: string) => {
-    const toastId = toast.loading("Syncing with agent...");
     try {
       const res = await fetch(`http://localhost:8000/api/v1/crawl/${jobId}`);
       const data = await res.json();
@@ -111,9 +110,8 @@ export default function WebCrawlerPage() {
             : j,
         ),
       );
-      toast.success("System synchronized", { id: toastId });
     } catch {
-      toast.error("Sync link severed", { id: toastId });
+      toast.error("Sync link severed");
     }
   };
 
@@ -125,29 +123,29 @@ export default function WebCrawlerPage() {
 
   const getStatusBadge = (status: Job["status"]) => {
     const styles = {
-      pending: {
+      PENDING: {
         bg: "bg-amber-50 text-amber-700 border-amber-200",
         icon: <Clock size={12} className="animate-spin" />,
       },
-      running: {
+      RUNNING: {
         bg: "bg-blue-50 text-blue-700 border-blue-200",
         icon: <Loader2 size={12} className="animate-spin" />,
       },
-      completed: {
+      COMPLETED: {
         bg: "bg-emerald-50 text-emerald-700 border-emerald-200",
         icon: <CheckCircle2 size={12} />,
       },
-      failed: {
+      FAILED: {
         bg: "bg-rose-50 text-rose-700 border-rose-200",
         icon: <XCircle size={12} />,
       },
-      cancelled: {
+      CANCELLED: {
         bg: "bg-gray-100 text-gray-600 border-gray-200",
         icon: <XCircle size={12} />,
       },
     };
 
-    const style = styles[status] || styles.pending;
+    const style = styles[status] || styles.PENDING;
 
     return (
       <Badge
@@ -158,6 +156,23 @@ export default function WebCrawlerPage() {
         {status}
       </Badge>
     );
+  };
+
+  const getStatusDotClass = (status: Job["status"]) => {
+    switch (status) {
+      case "RUNNING":
+        return "bg-blue-600 animate-pulse";
+      case "PENDING":
+        return "bg-yellow-500 animate-pulse";
+      case "COMPLETED":
+        return "bg-emerald-600";
+      case "FAILED":
+        return "bg-red-600";
+      case "CANCELLED":
+        return "bg-gray-400";
+      default:
+        return "bg-gray-400";
+    }
   };
 
   return (
@@ -372,7 +387,9 @@ export default function WebCrawlerPage() {
                             transition={{ delay: 0.2 }}
                             className="flex items-center gap-2"
                           >
-                            <div className="w-1.5 h-1.5 rounded-full bg-gray-600 animate-pulse" />
+                            <div
+                              className={`w-1.5 h-1.5 rounded-full ${getStatusDotClass(job.status)}`}
+                            />
                             {job.id.slice(0, 12).toUpperCase()}
                           </motion.div>
                         </TableCell>
@@ -521,9 +538,9 @@ export default function WebCrawlerPage() {
                                       value={
                                         job.error
                                           ? "Error"
-                                          : job.status === "completed"
+                                          : job.status === "COMPLETED"
                                             ? "Completed Successfully"
-                                            : job.status === "running"
+                                            : job.status === "RUNNING"
                                               ? "In Progress"
                                               : job.status
                                                   .charAt(0)
@@ -536,7 +553,7 @@ export default function WebCrawlerPage() {
                                             size={18}
                                             className="text-red-600"
                                           />
-                                        ) : job.status === "completed" ? (
+                                        ) : job.status === "COMPLETED" ? (
                                           <CheckCircle2
                                             size={18}
                                             className="text-emerald-600"
@@ -673,16 +690,12 @@ function DetailCard({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.3 }}
-      whileHover={{ y: -2, scale: 1.02 }}
-      className="bg-white p-4 rounded-xl border border-gray-300 shadow-sm flex items-center gap-4 hover:border-gray-400 hover:shadow-md transition-all duration-300 group"
+      className="bg-white p-4 rounded-xl border border-gray-300 shadow-sm flex items-center gap-4 hover:border-gray-400 hover:shadow-md transition-all duration-300"
     >
-      <motion.div
-        whileHover={{ rotate: 360 }}
-        transition={{ duration: 0.6 }}
-        className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-xl group-hover:from-gray-100 group-hover:to-gray-200 transition-all duration-300"
-      >
+      <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-xl transition-colors duration-300">
         {icon}
-      </motion.div>
+      </div>
+
       <div className="flex flex-col">
         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
           {label}
