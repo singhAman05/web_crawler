@@ -34,6 +34,9 @@ import { Label } from "@/components/ui/label";
 import { toast, Toaster } from "sonner";
 import React from "react";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+
 interface Job {
   id: string;
   url: string;
@@ -62,7 +65,7 @@ export default function WebCrawlerPage() {
     const toastId = toast.loading("Initializing mission...");
 
     try {
-      const res = await fetch("http://localhost:8000/api/v1/crawl/startJob", {
+      const res = await fetch(`${API_BASE_URL}/crawl/startJob`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ seedUrl, maxPages }),
@@ -83,8 +86,8 @@ export default function WebCrawlerPage() {
 
       toast.success("Crawl mission dispatched", { id: toastId });
       setSeedUrl("");
-    } catch {
-      toast.error("Deployment failed", { id: toastId });
+    } catch (error: any) {
+      toast.error("Job failed", { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -92,7 +95,7 @@ export default function WebCrawlerPage() {
 
   const checkStatus = async (jobId: string) => {
     try {
-      const res = await fetch(`http://localhost:8000/api/v1/crawl/${jobId}`);
+      const res = await fetch(`${API_BASE_URL}/crawl/${jobId}`);
       const data = await res.json();
 
       setJobs((prev) =>
@@ -176,7 +179,7 @@ export default function WebCrawlerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50/50">
+    <div className="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50/50">
       {/* Animated background gradient orbs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -231,14 +234,14 @@ export default function WebCrawlerPage() {
               initial={{ rotate: -180, opacity: 0 }}
               animate={{ rotate: 0, opacity: 1 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className="bg-gradient-to-br from-gray-800 to-black p-3 rounded-2xl shadow-lg"
+              className="bg-linear-to-br from-gray-800 to-black p-3 rounded-2xl shadow-lg"
             >
               <Globe className="text-white" size={28} strokeWidth={2} />
             </motion.div>
             <div>
               <h1 className="text-4xl font-bold tracking-tight text-gray-900 flex items-center gap-3">
                 Web Intelligence
-                <Badge className="bg-gradient-to-r from-gray-800 to-black text-white border-0 shadow-lg shadow-gray-300">
+                <Badge className="bg-linear-to-r from-gray-800 to-black text-white border-0 shadow-lg shadow-gray-300">
                   v2.0
                 </Badge>
               </h1>
@@ -323,7 +326,7 @@ export default function WebCrawlerPage() {
                     <Button
                       onClick={startCrawl}
                       disabled={loading}
-                      className="w-full h-12 bg-gradient-to-r from-gray-900 to-black hover:from-gray-800 hover:to-gray-900 text-white transition-all duration-300 rounded-xl shadow-lg hover:shadow-xl hover:shadow-gray-300 font-bold relative overflow-hidden"
+                      className="w-full h-12 bg-linear-to-r from-gray-900 to-black hover:from-gray-800 hover:to-gray-900 text-white transition-all duration-300 rounded-xl shadow-lg hover:shadow-xl hover:shadow-gray-300 font-bold relative overflow-hidden"
                     >
                       <span className="relative z-10 flex items-center gap-2">
                         {loading ? (
@@ -351,7 +354,7 @@ export default function WebCrawlerPage() {
             <Table>
               <TableHeader className="bg-gray-50 border-b border-gray-300">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[140px] pl-6 font-bold text-gray-800 text-xs uppercase tracking-wide">
+                  <TableHead className="w-35 pl-6 font-bold text-gray-800 text-xs uppercase tracking-wide">
                     Agent ID
                   </TableHead>
                   <TableHead className="font-bold text-gray-800 text-xs uppercase tracking-wide">
@@ -394,7 +397,7 @@ export default function WebCrawlerPage() {
                           </motion.div>
                         </TableCell>
 
-                        <TableCell className="max-w-[300px]">
+                        <TableCell className="max-w-75">
                           <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -617,7 +620,7 @@ export default function WebCrawlerPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.6 }}
-                className="flex flex-col items-center justify-center py-24 bg-gradient-to-b from-transparent to-gray-50/30"
+                className="flex flex-col items-center justify-center py-24 bg-linear-to-b from-transparent to-gray-50/30"
               >
                 <motion.div
                   initial={{ scale: 0.8, rotate: -10 }}
@@ -626,7 +629,7 @@ export default function WebCrawlerPage() {
                     duration: 0.6,
                     ease: "easeOut",
                   }}
-                  className="bg-gradient-to-br from-gray-100 to-gray-200 shadow-2xl p-8 rounded-3xl mb-6 relative"
+                  className="bg-linear-to-br from-gray-100 to-gray-200 shadow-2xl p-8 rounded-3xl mb-6 relative"
                 >
                   <motion.div
                     animate={{
@@ -646,7 +649,7 @@ export default function WebCrawlerPage() {
                     />
                   </motion.div>
                   <motion.div
-                    className="absolute inset-0 rounded-3xl bg-gradient-to-br from-gray-400/20 to-gray-500/20"
+                    className="absolute inset-0 rounded-3xl bg-linear-to-br from-gray-400/20 to-gray-500/20"
                     animate={{
                       opacity: [0.5, 0.8, 0.5],
                     }}
@@ -660,7 +663,7 @@ export default function WebCrawlerPage() {
                 <h3 className="text-gray-900 font-bold text-xl tracking-tight">
                   System Idle
                 </h3>
-                <p className="text-gray-600 text-sm max-w-[280px] text-center mt-2 leading-relaxed">
+                <p className="text-gray-600 text-sm max-w-70 text-center mt-2 leading-relaxed">
                   Ready to deploy. Enter target parameters to initiate discovery
                   protocol.
                 </p>
@@ -692,7 +695,7 @@ function DetailCard({
       transition={{ delay, duration: 0.3 }}
       className="bg-white p-4 rounded-xl border border-gray-300 shadow-sm flex items-center gap-4 hover:border-gray-400 hover:shadow-md transition-all duration-300"
     >
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-xl transition-colors duration-300">
+      <div className="bg-linear-to-br from-gray-50 to-gray-100 p-3 rounded-xl transition-colors duration-300">
         {icon}
       </div>
 
