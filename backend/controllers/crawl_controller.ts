@@ -41,6 +41,7 @@ export const getCrawlStatus = async (req: Request, res: Response, next: NextFunc
             status: job.status,
             seedUrl: job.seed_url,
             pagesCrawled: job.pages_crawled,
+            discoveredUrls: job.queue.visitedCount(),
             createdAt: job.created_at,
             startedAt: job.started_at ?? null,
             completedAt: job.completed_at ?? null,
